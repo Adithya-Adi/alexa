@@ -1,0 +1,16 @@
+[project]
+name = "jarvis"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=2.0.2",
+    "onnxruntime<1.20",
+    "openai>=2.9.0",
+    "openwakeword>=0.6.0",
+    "pandas>=2.3.3",
+    "pyaudio>=0.2.14",
+    "pyttsx3>=2.99",
+    "speechrecognition>=3.14.4",
+]
