@@ -8,6 +8,9 @@ on:
       - 'myfortuna-v*'
       - 'gritfinancial-v*'
 
+permissions:
+  contents: write
+
 jobs:
   test_release:
     name: 'Test Release'
