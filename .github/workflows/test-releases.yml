@@ -1,0 +1,56 @@
+name: Test Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'asure-v*'
+      - 'myfortuna-v*'
+      - 'gritfinancial-v*'
+
+jobs:
+  test_release:
+    name: 'Test Release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install jq
+        run: |
+          if ! command -v jq &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y jq
+          fi
+
+      - name: Get previous tag with same prefix
+        id: prev_tag
+        run: |
+          CURRENT_TAG="${{ github.ref_name }}"
+          echo "Current tag: $CURRENT_TAG"
+
+          PREFIX="${CURRENT_TAG%%v*}"
+
+          echo "Looking for previous tags with prefix: '${PREFIX}v'"
+
+          # Get previous tag with same prefix, excluding current
+          PREV_TAG=$(git tag -l "${PREFIX}v*" --sort=-v:refname | grep -v "^${CURRENT_TAG}$" | head -n 1)
+
+          echo "previous_tag=${PREV_TAG}" >> $GITHUB_OUTPUT
+          [ -n "$PREV_TAG" ] && echo "Previous tag: $PREV_TAG" || echo "No previous tag found"
+
+      - name: Generate changelog from conventional commits
+        id: changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: .github/cliff.toml
+          args: ${{ steps.prev_tag.outputs.previous_tag && format('{0}..{1}', steps.prev_tag.outputs.previous_tag, github.ref_name) || github.ref_name }}
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: ${{ steps.changelog.outputs.content }}
