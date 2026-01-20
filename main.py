@@ -4,10 +4,10 @@ import openwakeword
 from openwakeword.model import Model
 import speech_recognition as sr
 import pyttsx3
-from openai import OpenAI
 import threading
+import asyncio
+from server import lg_assistant
 
-client = OpenAI(api_key="") 
 
 def speak(text, wait=True):
     def _speak_target():
@@ -22,20 +22,6 @@ def speak(text, wait=True):
         t = threading.Thread(target=_speak_target)
         t.start()
 
-def ask_openai(prompt):
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant. Keep answers under 2 sentences."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=100
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        print(f"  ❌ OpenAI Error: {e}")
-        return "I couldn't reach the server."
 
 print("Loading Wake Word Model...")
 model = Model(wakeword_models=["alexa"])
@@ -52,7 +38,7 @@ def listen_for_command():
         print("\n  👂 LISTENING...")
         recognizer.adjust_for_ambient_noise(source, duration=0.2)
         try:
-            audio_data = recognizer.listen(source, timeout=3, phrase_time_limit=5)
+            audio_data = recognizer.listen(source)
             print("  Thinking...")
             text = recognizer.recognize_google(audio_data)
             print(f"  ✅ YOU SAID: '{text}'")
@@ -90,7 +76,11 @@ try:
                         speak("Goodbye.")
                         exit()
                     
-                    ai_response = ask_openai(user_text)
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    ai_response = loop.run_until_complete(lg_assistant.run_query(user_text))
+                    
+                    print(ai_response)
                     speak(ai_response)
 
                 print("\n🤖 READY AGAIN...")
